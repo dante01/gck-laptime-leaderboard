@@ -159,10 +159,9 @@ if not st.session_state.leaderboard.empty:
 st.markdown("---")  # 구분선 추가
 st.subheader("다운로드 기능")
 
-# CSV 다운로드 기능
 if st.button("리더보드 CSV 다운로드"):
     if not st.session_state.leaderboard.empty:
-        csv = st.session_state.leaderboard.to_csv(index=False).encode('utf-8')
+        csv = st.session_state.leaderboard.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
         st.download_button("Download CSV", csv, file_name=f"{st.session_state.title}.csv", mime='text/csv')
     else:
         st.warning("리더보드에 데이터가 없습니다.")
@@ -170,8 +169,10 @@ if st.button("리더보드 CSV 다운로드"):
 # HTML 다운로드 기능
 if st.button("리더보드 HTML 다운로드"):
     if not st.session_state.leaderboard.empty:
-        html = display_data.to_html(index=False, escape=False)
-        st.download_button("Download HTML", html, file_name=f"{st.session_state.title}.html", mime='text/html')
+        html = display_data.to_html(index=False, escape=False, justify='center', bold_rows=True)
+        # UTF-8 인코딩을 명시적으로 추가
+        html = f"<meta charset='utf-8'>\n{html}"
+        st.download_button("Download HTML", html.encode('utf-8'), file_name=f"{st.session_state.title}.html", mime='text/html; charset=utf-8')
     else:
         st.warning("리더보드에 데이터가 없습니다.")
 
@@ -207,6 +208,7 @@ if st.button("리더보드 PDF 다운로드"):
 if st.button("리더보드 Markdown 다운로드"):
     if not st.session_state.leaderboard.empty:
         markdown = display_data.to_markdown(index=False)
-        st.download_button("Download Markdown", markdown, file_name=f"{st.session_state.title}.md", mime='text/markdown')
+        # UTF-8 인코딩을 적용
+        st.download_button("Download Markdown", markdown.encode('utf-8'), file_name=f"{st.session_state.title}.md", mime='text/markdown; charset=utf-8')
     else:
         st.warning("리더보드에 데이터가 없습니다.")
