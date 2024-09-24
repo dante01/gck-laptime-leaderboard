@@ -16,7 +16,7 @@ DEFAULT_TITLE = "GCK Lap time board"
 COLUMN_NAMES = ["이름", "차수", "시간 (ms)"]
 
 # 한글 폰트 등록
-pdfmetrics.registerFont(TTFont('NotoSans', 'NotoSansKR-Regular.ttf'))
+pdfmetrics.registerFont(TTFont('NotoSansKR', 'NotoSansKR-Regular.ttf'))
 
 # 초기화
 if 'title' not in st.session_state:
@@ -106,15 +106,23 @@ if st.session_state.show_admin:
 st.title(st.session_state.title)
 
 # 입력폼
-with st.form(key='input_form'):
+col1, col2 = st.columns(2)
+with col1:
     name = st.text_input("이름")
+with col2:
     lap_number = st.number_input("주행 차수", min_value=1)
+
+# 분, 초, 밀리초 입력폼
+col3, col4, col5 = st.columns(3)
+with col3:
     minutes = st.number_input("분", min_value=0)
+with col4:
     seconds = st.number_input("초", min_value=0, max_value=59)
+with col5:
     milliseconds = st.number_input("밀리초", min_value=0, max_value=999)
 
-    total_time = (minutes * 60 + seconds) * 1000 + milliseconds
-    submit_button = st.form_submit_button(label='제출')
+total_time = (minutes * 60 + seconds) * 1000 + milliseconds
+submit_button = st.button(label='제출')
 
 # 제출 시 데이터 업데이트
 if submit_button and name:
@@ -181,7 +189,7 @@ def create_pdf(dataframe):
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTNAME', (0, 0), (-1, -1), 'NotoSans'),  # 한글 폰트 적용
+        ('FONTNAME', (0, 0), (-1, -1), 'NotoSansKR'),  # 한글 폰트 적용
     ]))
 
     pdf.build([table])
