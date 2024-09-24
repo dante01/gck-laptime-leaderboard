@@ -137,7 +137,7 @@ def format_time(ms):
     total_seconds = ms // 1000
     minutes, seconds = divmod(total_seconds, 60)
     milliseconds = ms % 1000
-    return f"{minutes}:{seconds:02}:{milliseconds // 10:02}"
+    return f"{minutes}:{seconds:02}:{milliseconds:03}"
 
 # 리더보드 표시
 st.subheader("리더보드")
