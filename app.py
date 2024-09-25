@@ -107,7 +107,7 @@ with col2:
 # 분, 초, 밀리초 입력폼
 col3, col4, col5 = st.columns(3)
 with col3:
-    minutes = st.number_input("분", min_value=0)
+    minutes = st.number_input("분", min_value=0, max_value=999)
 with col4:
     seconds = st.number_input("초", min_value=0, max_value=59)
 with col5:
