@@ -135,33 +135,33 @@ st.title(st.session_state.title)
 # 입력폼
 col1, col2 = st.columns(2)
 with col1:
-    name = st.text_input(KEY_NAME, placeholder="경주자의 이름을 입력하세요.")
+    name = st.text_input(KEY_NAME, placeholder="선수의 이름을 입력하세요.")
 with col2:
-    lap_number = st.number_input(KEY_LAP_NUMBER, value=None, min_value=1, placeholder="주행 차수를 입력하세요.")
+    lap_number = st.number_input(KEY_LAP_NUMBER, value=None, min_value=1, placeholder="주행 차수를 입력하세요.(기본값 1)")
 
 # 분, 초, 밀리초 입력폼
 col3, col4, col5 = st.columns(3)
 with col3:
     minutes = st.number_input(KEY_MM, value=None, min_value=0, max_value=999, placeholder="분을 입력하세요.(기본값 0)")
 with col4:
-    seconds = st.number_input(KEY_SS, value=None, min_value=0, max_value=59, placeholder="초를 입력하세요.")
+    seconds = st.number_input(KEY_SS, value=None, min_value=0, max_value=59, placeholder="초를 입력하세요.(기본값 0)")
 with col5:
-    milliseconds = st.number_input(KEY_MS, value=None, min_value=0, max_value=999, placeholder="밀리초를 입력하세요.")
+    milliseconds = st.number_input(KEY_MS, value=None, min_value=0, max_value=999, placeholder="밀리초를 입력하세요.(기본값 0)")
 
 # 가산초 및 패널티초 입력폼
 col6, col7 = st.columns(2)
 with col6:
-    bonus_time = st.number_input(KEY_BONUS_TIME, value=None, min_value=0, max_value=999, placeholder="가산 시간을 입력하세요.")
+    bonus_time = st.number_input(KEY_BONUS_TIME, value=None, min_value=0.0, max_value=999.0, placeholder="가산 시간을 입력하세요.(기본값 0.000)", step=1., format="%.3f")
 with col7:
-    penalty_time = st.number_input(KEY_PENALTY_TIME, value=None, min_value=0, max_value=999, placeholder="패널티 시간을 입력하세요.")
+    penalty_time = st.number_input(KEY_PENALTY_TIME, value=None, min_value=0.0, max_value=999.0, placeholder="패널티 시간을 입력하세요.(기본값 0.000)", step=1., format="%.3f")
 
 # value가 None일 경우 대응
 lap_number = 1 if lap_number is None else lap_number
 minutes = 0 if minutes is None else minutes
 seconds = 0 if seconds is None else seconds
 milliseconds = 0 if milliseconds is None else milliseconds
-bonus_time = 0 if bonus_time is None else bonus_time
-penalty_time = 0 if penalty_time is None else penalty_time
+bonus_time = 0.0 if bonus_time is None else bonus_time
+penalty_time = 0.0 if penalty_time is None else penalty_time
 
 # 합계 시간 계산
 input_time = (minutes * 60 + seconds) * 1000 + milliseconds
@@ -172,7 +172,7 @@ def format_time(ms):
     total_seconds = ms // 1000
     minutes, seconds = divmod(total_seconds, 60)
     milliseconds = ms % 1000
-    return f"{minutes}:{seconds:02}:{milliseconds:03}"
+    return f"{int(minutes)}:{int(seconds):02}:{int(milliseconds):03}"
 
 formatted_time = format_time(input_time)
 formatted_total_time = format_time(total_time)
