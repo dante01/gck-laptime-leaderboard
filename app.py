@@ -22,10 +22,12 @@ KEY_LAP_TIME = "시간"
 KEY_BONUS_TIME = "가산초"
 KEY_PENALTY_TIME = "패널티초"
 KEY_TOTAL_TIME = "합계 시간"
+KEY_DIFF_TIME = "시간 차이"
 KEY_RANKING = "순위"
 KEY_MM = "분"
 KEY_SS = "초"
 KEY_MS = "밀리초"
+# COLUMN_NAMES = [KEY_NAME, KEY_LAP_NUMBER, KEY_LAP_TIME, KEY_BONUS_TIME, KEY_PENALTY_TIME, KEY_TOTAL_TIME, KEY_DIFF_TIME]
 COLUMN_NAMES = [KEY_NAME, KEY_LAP_NUMBER, KEY_LAP_TIME, KEY_BONUS_TIME, KEY_PENALTY_TIME, KEY_TOTAL_TIME]
 ADMIN_PASSWORD = "gck@admin" #os.getenv("ADMIN_PASSWORD")  # 환경 변수로부터 비밀번호 불러오기
 
@@ -112,10 +114,13 @@ if st.session_state.show_admin:
 
         # 파일 업로드 기능
         uploaded_file = st.file_uploader("리더보드 CSV 파일 업로드")
-        if uploaded_file:
-            st.session_state.leaderboard = pd.read_csv(uploaded_file, encoding='utf-8')
-            st.session_state.leaderboard.to_csv(DATA_FILE, index=False, encoding='utf-8')
-            st.success("리더보드가 갱신되었습니다.")
+        if uploaded_file is not None:
+            try:
+                st.session_state.leaderboard = pd.read_csv(uploaded_file, encoding='utf-8')
+                st.session_state.leaderboard.to_csv(DATA_FILE, index=False, encoding='utf-8')
+                st.success("리더보드가 갱신되었습니다.")
+            except Exception as e:
+                st.error(f"파일 처리 중 오류가 발생했습니다: {e}")
 
         # 리더보드 백업 저장 기능
         if st.button("리더보드 백업 저장"):
@@ -169,10 +174,31 @@ total_time = input_time + (bonus_time * 1000) + (penalty_time * 1000)
 
 # 시간을 분:초:밀리초 형식으로 변환하는 함수
 def format_time(ms):
-    total_seconds = ms // 1000
-    minutes, seconds = divmod(total_seconds, 60)
-    milliseconds = ms % 1000
-    return f"{int(minutes)}:{int(seconds):02}:{int(milliseconds):03}"
+    try:
+        ms = int(ms)  # 먼저 ms를 정수형으로 변환
+        total_seconds = ms // 1000
+        minutes, seconds = divmod(total_seconds, 60)
+        milliseconds = ms % 1000
+        return f"{int(minutes)}:{int(seconds):02}:{int(milliseconds):03}"
+    except ValueError:
+        return "Invalid time format"
+
+def time_to_ms(time_str):
+    minutes, seconds, milliseconds = map(int, time_str.split(":"))
+    return (minutes * 60 + seconds) * 1000 + milliseconds
+
+# 앞 순위와의 시간 차이 계산 함수
+def calculate_time_difference(df):
+    differences = []
+    for i in range(len(df)):
+        if i == 0:
+            differences.append("0:00:000")  # 첫 번째는 비교 대상이 없으므로 0으로 표시
+        else:
+            curr_total_time = time_to_ms(df[KEY_TOTAL_TIME].iloc[i])
+            prev_total_time = time_to_ms(df[KEY_TOTAL_TIME].iloc[i - 1])
+            diff = curr_total_time - prev_total_time
+            differences.append(format_time(diff))
+    return differences
 
 formatted_time = format_time(input_time)
 formatted_total_time = format_time(total_time)
@@ -193,12 +219,21 @@ if submit_button and name:
     st.session_state.leaderboard = st.session_state.leaderboard.sort_values(by=KEY_TOTAL_TIME).reset_index(drop=True)
     st.session_state.leaderboard.to_csv(DATA_FILE, index=False, encoding='utf-8')
 
+# 리더보드 정렬 및 시간 차이 계산
+st.session_state.leaderboard = st.session_state.leaderboard.sort_values(by=KEY_TOTAL_TIME).reset_index(drop=True)
+
+# 합계 시간 차이 열 추가
+st.session_state.leaderboard[KEY_DIFF_TIME] = calculate_time_difference(st.session_state.leaderboard)
+
+# 시간 차이를 포맷하여 보여주기
+# st.session_state.leaderboard[KEY_DIFF_TIME] = st.session_state.leaderboard[KEY_DIFF_TIME].apply(lambda x: format_time(x) if x is not None else "N/A")
+
 # 리더보드 표시
 st.subheader("리더보드")
 if not st.session_state.leaderboard.empty:
     display_data = st.session_state.leaderboard.copy()
     display_data[KEY_RANKING] = display_data.index + 1
-    st.table(display_data[[KEY_RANKING, KEY_NAME, KEY_LAP_NUMBER, KEY_LAP_TIME, KEY_BONUS_TIME, KEY_PENALTY_TIME, KEY_TOTAL_TIME]])
+    st.table(display_data[[KEY_RANKING, KEY_NAME, KEY_LAP_NUMBER, KEY_LAP_TIME, KEY_BONUS_TIME, KEY_PENALTY_TIME, KEY_TOTAL_TIME, KEY_DIFF_TIME]])
 
 # 다운로드 기능
 st.markdown("---")
@@ -227,21 +262,32 @@ if st.button("리더보드 HTML 다운로드"):
 def create_pdf(dataframe):
     buffer = io.BytesIO()
     pdf = SimpleDocTemplate(buffer, pagesize=letter)
-    title_style = ParagraphStyle(name='TitleStyle', fontName='NotoSansKR', fontSize=20, alignment=1)
-    header_style = ParagraphStyle(name='HeaderStyle', fontName='NotoSansKR', fontSize=16, alignment=1)
-    cell_style = ParagraphStyle(name='CellStyle', fontName='NotoSansKR', fontSize=12)
+    title_style = ParagraphStyle(name='TitleStyle', fontName='NotoSansKR', fontSize=18, alignment=1)
+    header_style = ParagraphStyle(name='HeaderStyle', fontName='NotoSansKR', fontSize=14, alignment=1)
+    cell_style = ParagraphStyle(name='CellStyle', fontName='NotoSansKR', fontSize=11)
 
     elements = []
     elements.append(Paragraph(st.session_state.title, title_style))
-    elements.append(Spacer(1, 12))
+    elements.append(Spacer(1, 40))
 
-    data = [[Paragraph(KEY_RANKING, header_style), Paragraph(KEY_NAME, header_style), Paragraph(KEY_LAP_NUMBER, header_style),
-             Paragraph(KEY_LAP_TIME, header_style), Paragraph(KEY_BONUS_TIME, header_style), Paragraph(KEY_PENALTY_TIME, header_style), Paragraph(KEY_TOTAL_TIME, header_style)]]
+    data = [[Paragraph(KEY_RANKING, header_style),
+             Paragraph(KEY_NAME, header_style),
+             Paragraph(KEY_LAP_NUMBER, header_style),
+             Paragraph(KEY_LAP_TIME, header_style),
+             Paragraph(KEY_BONUS_TIME, header_style),
+             Paragraph(KEY_PENALTY_TIME, header_style),
+             Paragraph(KEY_TOTAL_TIME, header_style),
+             Paragraph(KEY_DIFF_TIME, header_style)]]
 
     for i, row in dataframe.iterrows():
-        data.append([Paragraph(str(i + 1), cell_style), Paragraph(row[KEY_NAME], cell_style), Paragraph(str(row[KEY_LAP_NUMBER]), cell_style),
-                     Paragraph(format_time(row[KEY_LAP_TIME]), cell_style), Paragraph(str(row[KEY_BONUS_TIME]), cell_style),
-                     Paragraph(str(row[KEY_PENALTY_TIME]), cell_style), Paragraph(format_time(row[KEY_TOTAL_TIME]), cell_style)])
+        data.append([Paragraph(str(i + 1), cell_style),
+                     Paragraph(row[KEY_NAME], cell_style), 
+                     Paragraph(str(row[KEY_LAP_NUMBER]), cell_style),
+                     Paragraph(row[KEY_LAP_TIME], cell_style), 
+                     Paragraph(str(row[KEY_BONUS_TIME]), cell_style),
+                     Paragraph(str(row[KEY_PENALTY_TIME]), cell_style), 
+                     Paragraph(row[KEY_TOTAL_TIME], cell_style),
+                     Paragraph(row[KEY_DIFF_TIME], cell_style)])
 
     table = Table(data, colWidths=[40, 80, 50, 100, 50, 50, 100])
     table.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.grey),
