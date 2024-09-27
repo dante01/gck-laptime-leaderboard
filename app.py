@@ -13,6 +13,7 @@ from reportlab.lib.styles import ParagraphStyle
 DATA_FILE = 'leaderboard.csv'
 TITLE_FILE = 'title.txt'
 BACKUP_FILE = 'leaderboard_backup.csv'
+BONUS_TIME_FILE = 'bonus_times.csv'
 
 # 전역 변수
 DEFAULT_TITLE = "GCK Lap time board"
@@ -22,6 +23,7 @@ KEY_LAP_TIME = "시간"
 KEY_BONUS_TIME = "가산초"
 KEY_PENALTY_TIME = "패널티초"
 KEY_TOTAL_TIME = "합계 시간"
+KEY_TOTAL_TIME_MS = "합계 시간(ms)"
 KEY_DIFF_TIME = "시간 차이"
 KEY_RANKING = "순위"
 KEY_MM = "분"
@@ -58,7 +60,21 @@ def load_data():
     else:
         st.session_state.leaderboard = pd.DataFrame(columns=COLUMN_NAMES)
 
+# 자동 가산초 입력 파일 불러오기
+def load_bonus_times():
+    if os.path.exists(BONUS_TIME_FILE):
+        try:
+            if os.path.getsize(BONUS_TIME_FILE) > 0:
+                st.session_state.bonus_times = pd.read_csv(BONUS_TIME_FILE, encoding='utf-8')
+            else:
+                st.session_state.bonus_times = pd.DataFrame(columns=[KEY_NAME, KEY_BONUS_TIME])
+        except Exception as e:
+            st.error(f"가산초 데이터 로드 중 오류가 발생했습니다: {e}")
+    else:
+        st.session_state.bonus_times = pd.DataFrame(columns=[KEY_NAME, KEY_BONUS_TIME])
+
 load_data()
+load_bonus_times()  # 가산초 데이터 로드
 
 # 관리자 기능을 숨기기 위한 버튼
 if st.button("관리자 기능"):
@@ -170,6 +186,13 @@ penalty_time = 0.0 if penalty_time is None else penalty_time
 
 # 합계 시간 계산
 input_time = (minutes * 60 + seconds) * 1000 + milliseconds
+
+# 자동 가산초 입력 기능 추가
+if name in st.session_state.bonus_times[KEY_NAME].values:
+    bonus_time = st.session_state.bonus_times.loc[st.session_state.bonus_times[KEY_NAME] == name, KEY_BONUS_TIME].values[0]
+else:
+    bonus_time = 0.0  # 이름이 없으면 기본값으로 설정
+
 total_time = input_time + (bonus_time * 1000) + (penalty_time * 1000)
 
 # 시간을 분:초:밀리초 형식으로 변환하는 함수
@@ -187,18 +210,6 @@ def time_to_ms(time_str):
     minutes, seconds, milliseconds = map(int, time_str.split(":"))
     return (minutes * 60 + seconds) * 1000 + milliseconds
 
-# 앞 순위와의 시간 차이 계산 함수
-def calculate_time_difference(df):
-    differences = []
-    for i in range(len(df)):
-        if i == 0:
-            differences.append("0:00:000")  # 첫 번째는 비교 대상이 없으므로 0으로 표시
-        else:
-            curr_total_time = time_to_ms(df[KEY_TOTAL_TIME].iloc[i])
-            prev_total_time = time_to_ms(df[KEY_TOTAL_TIME].iloc[i - 1])
-            diff = curr_total_time - prev_total_time
-            differences.append(format_time(diff))
-    return differences
 
 formatted_time = format_time(input_time)
 formatted_total_time = format_time(total_time)
@@ -222,16 +233,47 @@ if submit_button and name:
 # 리더보드 정렬 및 시간 차이 계산
 st.session_state.leaderboard = st.session_state.leaderboard.sort_values(by=KEY_TOTAL_TIME).reset_index(drop=True)
 
+
+# 시간을 분:초:밀리초 형식으로 밀리초로 변환하는 함수
+def time_str_to_ms(time_str):
+    minutes, seconds, milliseconds = map(int, time_str.split(':'))
+    return (minutes * 60 + seconds) * 1000 + milliseconds
+
+# 시간 차이를 계산하는 함수
+def calculate_time_difference(df):
+    differences = []
+    total_times_ms = df[KEY_TOTAL_TIME].apply(time_str_to_ms)  # 총 시간을 밀리초로 변환
+
+    for i in range(len(df)):
+        if i == 0:
+            differences.append("0:00:000")  # 첫 번째는 비교 대상이 없으므로 0으로 표시
+        else:
+            diff = total_times_ms.iloc[i] - total_times_ms.iloc[i - 1]  # 밀리초로 차이 계산
+            differences.append(format_time(diff))  # 밀리초를 포맷하여 추가
+    return differences
+
 # 합계 시간 차이 열 추가
 st.session_state.leaderboard[KEY_DIFF_TIME] = calculate_time_difference(st.session_state.leaderboard)
 
 # 시간 차이를 포맷하여 보여주기
 # st.session_state.leaderboard[KEY_DIFF_TIME] = st.session_state.leaderboard[KEY_DIFF_TIME].apply(lambda x: format_time(x) if x is not None else "N/A")
 
+# 합계 시간을 밀리초로 변환하여 정렬하기
+if not st.session_state.leaderboard.empty:
+    st.session_state.leaderboard[KEY_TOTAL_TIME_MS] = st.session_state.leaderboard[KEY_TOTAL_TIME].apply(time_str_to_ms)
+    st.session_state.leaderboard = st.session_state.leaderboard.sort_values(by=KEY_TOTAL_TIME_MS).reset_index(drop=True)
+    st.session_state.leaderboard.drop(columns=[KEY_TOTAL_TIME_MS], inplace=True)  # 정렬 후 필요 없는 열 삭제
+
+
+# 가산초 및 패널티초 포맷 변경
+st.session_state.leaderboard[KEY_BONUS_TIME] = st.session_state.leaderboard[KEY_BONUS_TIME].map(lambda x: f"{x:.3f}")
+st.session_state.leaderboard[KEY_PENALTY_TIME] = st.session_state.leaderboard[KEY_PENALTY_TIME].map(lambda x: f"{x:.3f}")
+
 # 리더보드 표시
 st.subheader("리더보드")
 if not st.session_state.leaderboard.empty:
     display_data = st.session_state.leaderboard.copy()
+    # display_data = st.session_state.leaderboard.copy().iloc[1:]  # 첫 번째 행을 제외한 데이터프레임
     display_data[KEY_RANKING] = display_data.index + 1
     st.table(display_data[[KEY_RANKING, KEY_NAME, KEY_LAP_NUMBER, KEY_LAP_TIME, KEY_BONUS_TIME, KEY_PENALTY_TIME, KEY_TOTAL_TIME, KEY_DIFF_TIME]])
 
