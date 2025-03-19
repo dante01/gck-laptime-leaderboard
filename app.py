@@ -331,6 +331,14 @@ if not st.session_state.leaderboard.empty:
     display_data[KEY_RANKING] = display_data.index + 1
     st.table(display_data[[KEY_RANKING, KEY_NAME, KEY_LAP_NUMBER, KEY_LAP_TIME, KEY_BONUS_TIME, KEY_PENALTY_TIME, KEY_TOTAL_TIME, KEY_DIFF_TIME]])
 
+# 리더보드 표시
+st.subheader("리더보드 A")
+if not st.session_state.leaderboard.empty:
+    display_data = st.session_state.leaderboard.copy()
+    # display_data = st.session_state.leaderboard.copy().iloc[1:]  # 첫 번째 행을 제외한 데이터프레임
+    display_data[KEY_RANKING] = display_data.index + 1
+    st.table(display_data[[KEY_RANKING, KEY_CLASS, KEY_NAME, KEY_LAP_NUMBER, KEY_LAP_TIME, KEY_BONUS_TIME, KEY_PENALTY_TIME, KEY_TOTAL_TIME, KEY_DIFF_TIME]])
+
 # 다운로드 기능
 st.markdown("---")
 st.subheader("다운로드 기능")
