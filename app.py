@@ -17,7 +17,7 @@ BACKUP_FILE = 'leaderboard_backup.csv'
 BONUS_TIME_FILE = 'bonus_times.csv'
 
 # 전역 변수
-DEFAULT_TITLE = "GCK Lap time board"
+DEFAULT_TITLE = "🏆 GCK Lap time board"
 KEY_NAME = "이름"
 KEY_LAP_NUMBER = "주행 차수"
 KEY_LAP_TIME = "시간"
