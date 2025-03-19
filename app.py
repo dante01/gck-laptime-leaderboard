@@ -19,6 +19,7 @@ BONUS_TIME_FILE = 'bonus_times.csv'
 # 전역 변수
 DEFAULT_TITLE = "🏆 GCK Lap time board"
 KEY_NAME = "이름"
+KEY_CLASS = "클래스"
 KEY_LAP_NUMBER = "주행 차수"
 KEY_LAP_TIME = "시간"
 KEY_BONUS_TIME = "가산초"
@@ -31,8 +32,11 @@ KEY_MM = "분"
 KEY_SS = "초"
 KEY_MS = "밀리초"
 # COLUMN_NAMES = [KEY_NAME, KEY_LAP_NUMBER, KEY_LAP_TIME, KEY_BONUS_TIME, KEY_PENALTY_TIME, KEY_TOTAL_TIME, KEY_DIFF_TIME]
-COLUMN_NAMES = [KEY_NAME, KEY_LAP_NUMBER, KEY_LAP_TIME, KEY_BONUS_TIME, KEY_PENALTY_TIME, KEY_TOTAL_TIME]
+COLUMN_NAMES = [KEY_NAME, KEY_CLASS, KEY_LAP_NUMBER, KEY_LAP_TIME, KEY_BONUS_TIME, KEY_PENALTY_TIME, KEY_TOTAL_TIME]
 ADMIN_PASSWORD = "gck@admin" #os.getenv("ADMIN_PASSWORD")  # 환경 변수로부터 비밀번호 불러오기
+
+# 클래스 목록
+classes = ["A", "B", "ND", "86", "M", "N", "All"]
 
 # 한글 폰트 등록
 pdfmetrics.registerFont(TTFont('NotoSansKR', 'NotoSansKR-Regular.ttf'))
@@ -224,6 +228,9 @@ with col6:
 with col7:
     penalty_time = st.number_input(KEY_PENALTY_TIME, value=None, min_value=0.0, max_value=999.0, placeholder="0.0~999.0 sec. (기본값 0.000)", step=1., format="%.3f")
 
+# 클래스 선택
+selected_class = st.selectbox("클래스를 선택하세요:", classes)
+
 # value가 None일 경우 대응
 lap_number = 1 if lap_number is None else lap_number
 minutes = 0 if minutes is None else minutes
@@ -275,7 +282,7 @@ def submit_update(data, name, lap_number):
             submit_message.empty()
             return
         else:
-            new_entry = pd.DataFrame([[name, lap_number, formatted_time, bonus_time, penalty_time, formatted_total_time]], columns=COLUMN_NAMES)
+            new_entry = pd.DataFrame([[name, selected_class, lap_number, formatted_time, bonus_time, penalty_time, formatted_total_time]], columns=COLUMN_NAMES)
             st.session_state.leaderboard = pd.concat([st.session_state.leaderboard, new_entry], ignore_index=True)
     else:
         new_entry = pd.DataFrame([[name, lap_number, formatted_time, bonus_time, penalty_time, formatted_total_time]], columns=COLUMN_NAMES)
