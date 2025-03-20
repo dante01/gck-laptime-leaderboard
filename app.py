@@ -72,12 +72,11 @@ def input_form(classes):
     input_time = (minutes * 60 + seconds) * 1000 + milliseconds
 
     # 자동 가산초 입력 기능 추가
-    if name in st.session_state.bonus_times[KEY_NAME].values:
+    if bonus_time == 0.0 and name in st.session_state.bonus_times[KEY_NAME].values:
         bonus_time = st.session_state.bonus_times.loc[st.session_state.bonus_times[KEY_NAME] == name, KEY_BONUS_TIME].values[0]
-    else:
-        bonus_time = 0.0  # 이름이 없으면 기본값으로 설정
+        bonus_time = float(bonus_time) if isinstance(bonus_time, str) else bonus_time
 
-    total_time = input_time + (bonus_time * 1000) + (penalty_time * 1000)
+    total_time = input_time + int(bonus_time * 1000) + int(penalty_time * 1000)
 
     formatted_time = format_time(input_time)
     formatted_total_time = format_time(total_time)
@@ -97,10 +96,10 @@ def submit_update(data, name, lap_number, selected_class, formatted_time, bonus_
             submit_message.empty()
             return
         else:
-            new_entry = pd.DataFrame([[name, selected_class, lap_number, formatted_time, bonus_time, penalty_time, formatted_total_time]], columns=COLUMN_NAMES)
+            new_entry = pd.DataFrame([[name, selected_class, lap_number, formatted_time, f"{bonus_time:.3f}", f"{penalty_time:.3f}", formatted_total_time]], columns=COLUMN_NAMES)
             st.session_state.leaderboard = pd.concat([st.session_state.leaderboard, new_entry], ignore_index=True)
     else:
-        new_entry = pd.DataFrame([[name, selected_class, lap_number, formatted_time, bonus_time, penalty_time, formatted_total_time]], columns=COLUMN_NAMES)
+        new_entry = pd.DataFrame([[name, selected_class, lap_number, formatted_time, f"{bonus_time:.3f}", f"{penalty_time:.3f}", formatted_total_time]], columns=COLUMN_NAMES)
         st.session_state.leaderboard = new_entry
 
     st.session_state.leaderboard = st.session_state.leaderboard.sort_values(by=KEY_TOTAL_TIME).reset_index(drop=True)
@@ -124,8 +123,8 @@ def process_leaderboard(leaderboard):
         leaderboard.drop(columns=[KEY_TOTAL_TIME_MS], inplace=True)  # 정렬 후 필요 없는 열 삭제
 
     # 가산초 및 패널티초 포맷 변경
-    leaderboard[KEY_BONUS_TIME] = leaderboard[KEY_BONUS_TIME].map(lambda x: f"{x:.3f}")
-    leaderboard[KEY_PENALTY_TIME] = leaderboard[KEY_PENALTY_TIME].map(lambda x: f"{x:.3f}")
+    leaderboard[KEY_BONUS_TIME] = leaderboard[KEY_BONUS_TIME].map(lambda x: f"{float(x):.3f}" if x != "" else "0.000")
+    leaderboard[KEY_PENALTY_TIME] = leaderboard[KEY_PENALTY_TIME].map(lambda x: f"{float(x):.3f}" if x != "" else "0.000")
 
     # 리더보드 정렬 및 시간 차이 계산
     leaderboard = leaderboard.sort_values(by=KEY_TOTAL_TIME).reset_index(drop=True)
